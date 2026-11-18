@@ -1,0 +1,26 @@
+# ---------- Frontend (client) ----------
+node_modules/
+client/dist/
+client/dev-dist/
+*.log
+npm-debug.log*
+
+# ---------- Backend (server) ----------
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+instance/
+*.db
+
+# ---------- Secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Editors / OS ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
