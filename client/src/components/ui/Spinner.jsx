@@ -9,3 +9,10 @@ export default function Spinner({ size = "md", className = "" }) {
     />
   );
 }
+export function FullPageSpinner() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#F7F9F8] text-green-700">
+      <Spinner size="lg" />
+    </div>
+  );
+}
