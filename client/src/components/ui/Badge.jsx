@@ -16,3 +16,15 @@ export default function Badge({ children, tone = "gray", dot = false, className 
     </span>
   );
 }
+// Ready-made badges so every page uses the same colours
+const STATUS_TONES = { open: "red", resolved: "green", genuine: "green", fake: "red", admin: "solid", officer: "gray" };
+
+export function StatusBadge({ status }) {
+  if (!status) return null;
+  const text = status.charAt(0).toUpperCase() + status.slice(1);
+  return (
+    <Badge tone={STATUS_TONES[status] || "gray"} dot={status === "open" || status === "resolved"}>
+      {text}
+    </Badge>
+  );
+}
