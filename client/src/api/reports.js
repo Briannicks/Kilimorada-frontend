@@ -19,3 +19,12 @@ export function updateReport(id, data) {
   return api.patch(`/reports/${id}`, data);
 }
 
+// Saves the reply
+export function replyToReport(id, message) {
+  return api.post(/reports/${id}/reply, { message });
+}
+
+// Admin only.
+export function deleteReport(id) {
+  return api.delete(/reports/${id});
+}
