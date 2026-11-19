@@ -18,3 +18,4 @@ export function updatePrice(id, data) {
 export function deletePrice(id) {
   return api.delete(`/prices/${id}`);
 }
+
