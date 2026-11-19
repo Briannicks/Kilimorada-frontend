@@ -21,10 +21,10 @@ export function updateReport(id, data) {
 
 // Saves the reply
 export function replyToReport(id, message) {
-  return api.post(/reports/${id}/reply, { message });
+  return api.post(`/reports/${id}`/reply, { message });
 }
 
 // Admin only.
 export function deleteReport(id) {
-  return api.delete(/reports/${id});
+  return api.delete(`/reports/${id}`);
 }
