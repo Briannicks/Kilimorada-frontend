@@ -7,7 +7,7 @@ export function getUsers(filters = {}) {
 
 
 export function changeRole(id, role) {
-  return api.patch(/users/${id}/role, { role });
+  return api.patch(`/users/${id}/role`, { role });
 }
 
 
