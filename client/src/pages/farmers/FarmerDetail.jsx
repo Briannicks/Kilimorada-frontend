@@ -229,8 +229,8 @@ export default function FarmerDetail() {
             {farmer.phone}
           </a>
         </InfoItem>
-        <InfoItem icon={MapPin} label="Ward">
-          {farmer.ward || "Not set"}
+        <InfoItem icon={MapPin} label="Area">
+          {[farmer.ward, farmer.county].filter(Boolean).join(", ") || "Not set"}
         </InfoItem>
         <InfoItem icon={Sprout} label="Main crop">
           {farmer.main_crop || "Not set"}

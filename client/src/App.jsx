@@ -7,6 +7,7 @@ import GuestRoute from "./components/routing/GuestRoute";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Verify from "./pages/auth/Verify";
+import PendingApproval from "./pages/auth/PendingApproval";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Farmers from "./pages/farmers/Farmers";
 import FarmerDetail from "./pages/farmers/FarmerDetail";
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<Verify />} />
+        <Route path="/pending" element={<PendingApproval />} />
       </Route>
 
       {/* Logged-in admins and officers */}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Inbox, Search, X } from "lucide-react";
+import { ChevronRight, Inbox, MapPin, Search, X } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -10,6 +10,7 @@ import EmptyState from "../../components/ui/EmptyState";
 import ErrorAlert from "../../components/ui/ErrorAlert";
 import { SkeletonRows } from "../../components/ui/Skeleton";
 import { getReports } from "../../api/reports";
+import { useAuth } from "../../context/AuthContext";
 import useFetch from "../../hooks/useFetch";
 import useDebounce from "../../hooks/useDebounce";
 import { capitalize, timeAgo } from "../../utils/format";
@@ -23,29 +24,39 @@ const TABS = [
 const CATEGORY_TONES = { pest: "red", disease: "amber", weather: "gray", other: "gray" };
 
 export default function Reports() {
+  const { user } = useAuth();
+  const myWard = user?.ward || "";
+  const [scope, setScope] = useState(myWard ? "mine" : "all"); // "mine" = farmers in my ward
   const [status, setStatus] = useState("open");
   const [category, setCategory] = useState("");
   const [ward, setWard] = useState("");
   const [page, setPage] = useState(1);
   const debouncedWard = useDebounce(ward.trim());
+  const wardFilter = scope === "mine" ? myWard : debouncedWard;
 
   const { data, loading, error, reload } = useFetch(
-    () => getReports({ status, category, ward: debouncedWard, page, per_page: PER_PAGE }),
-    [status, category, debouncedWard, page]
+    () => getReports({ status, category, ward: wardFilter, page, per_page: PER_PAGE }),
+    [status, category, wardFilter, page]
   );
 
   // Totals for the two tabs
   const counts = useFetch(
     () =>
       Promise.all([
-        getReports({ status: "open", per_page: 1 }),
-        getReports({ status: "resolved", per_page: 1 }),
+        getReports({ status: "open", ward: scope === "mine" ? myWard : "", per_page: 1 }),
+        getReports({ status: "resolved", ward: scope === "mine" ? myWard : "", per_page: 1 }),
       ]).then(([open, resolved]) => ({ open: open.total, resolved: resolved.total })),
-    []
+    [scope, myWard]
   );
 
   const reports = data?.items || [];
-  const filtering = Boolean(category || ward);
+  const filtering = Boolean(category || (scope === "all" && ward));
+
+  const changeScope = (value) => {
+    setScope(value);
+    setWard("");
+    setPage(1);
+  };
 
   const changeTab = (value) => {
     setStatus(value);
@@ -66,6 +77,29 @@ export default function Reports() {
           Problems farmers reported on USSD or by phone. Open a report to reply by SMS.
         </p>
       </div>
+
+      {/* My ward / all reports */}
+      {myWard && (
+        <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+          {[
+            { value: "mine", label: `My ward (${myWard})`, icon: MapPin },
+            { value: "all", label: "All reports" },
+          ].map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => changeScope(value)}
+              aria-pressed={scope === value}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                scope === value ? "bg-green-700 text-white" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-6 border-b border-slate-200" role="tablist">
@@ -110,19 +144,26 @@ export default function Reports() {
             setPage(1);
           }}
         />
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            aria-label="Filter by ward"
-            placeholder="Ward, e.g. Tinet"
-            value={ward}
-            onChange={(event) => {
-              setWard(event.target.value);
-              setPage(1);
-            }}
-            inputClassName="pl-11"
-          />
-        </div>
+        {scope === "all" ? (
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              aria-label="Filter by ward"
+              placeholder="Ward, e.g. Tinet"
+              value={ward}
+              onChange={(event) => {
+                setWard(event.target.value);
+                setPage(1);
+              }}
+              inputClassName="pl-11"
+            />
+          </div>
+        ) : (
+          <p className="flex h-12 items-center gap-2 px-1 text-sm text-slate-500">
+            <MapPin className="h-4 w-4 text-green-700" aria-hidden="true" />
+            Showing farmers in {myWard}. Change your ward on your Profile.
+          </p>
+        )}
         {filtering ? (
           <Button variant="ghost" icon={X} onClick={clearFilters}>
             Clear
@@ -151,7 +192,11 @@ export default function Reports() {
           ) : (
             <EmptyState
               icon={Inbox}
-              title={status === "open" ? "No open reports" : "No resolved reports yet"}
+              title={
+                status === "open"
+                  ? scope === "mine" ? `No open reports in ${myWard}` : "No open reports"
+                  : "No resolved reports yet"
+              }
               message={
                 status === "open"
                   ? "All caught up. New problems farmers report on USSD will appear here."

@@ -3,17 +3,19 @@ import * as Yup from "yup";
 import { UserPlus } from "lucide-react";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
 import Button from "../../components/ui/Button";
 import ErrorAlert from "../../components/ui/ErrorAlert";
 import { createFarmer, updateFarmer } from "../../api/farmers";
 import { applyApiErrors, cleanPhone, KENYAN_PHONE } from "../../utils/forms";
-import { CROP_SUGGESTIONS } from "../../constants";
+import { COUNTY_OPTIONS, CROP_SUGGESTIONS, KENYA_COUNTIES } from "../../constants";
 
 const schema = Yup.object({
   name: Yup.string().trim().min(2, "Name must be at least 2 characters").max(100, "Too long").required("Full name is required"),
   phone: Yup.string()
     .required("Phone number is required")
     .test("kenyan-phone", "Use a Kenyan number like 0712345678", (value) => KENYAN_PHONE.test(cleanPhone(value))),
+  county: Yup.string().oneOf(["", ...KENYA_COUNTIES], "Choose a county from the list"),
   ward: Yup.string().trim().max(100, "Too long"),
   main_crop: Yup.string().trim().max(50, "Too long"),
 });
@@ -27,6 +29,7 @@ export default function FarmerForm({ open, farmer, onClose, onSaved }) {
     initialValues: {
       name: farmer?.name || "",
       phone: farmer?.phone || "",
+      county: farmer?.county || "",
       ward: farmer?.ward || "",
       main_crop: farmer?.main_crop || "",
     },
@@ -36,6 +39,7 @@ export default function FarmerForm({ open, farmer, onClose, onSaved }) {
       const data = {
         name: values.name.trim(),
         phone: cleanPhone(values.phone),
+        county: values.county || null,
         ward: values.ward.trim() || null,
         main_crop: values.main_crop.trim() || null,
       };
@@ -95,21 +99,28 @@ export default function FarmerForm({ open, farmer, onClose, onSaved }) {
           error={fieldError("phone")}
         />
         <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="County"
+            placeholder="Choose county"
+            options={COUNTY_OPTIONS}
+            {...formik.getFieldProps("county")}
+            error={fieldError("county")}
+          />
           <Input label="Ward" {...formik.getFieldProps("ward")} error={fieldError("ward")} />
-          <div>
-            <Input
-              label="Main crop"
-              list="farmer-crops"
-              placeholder="e.g. Maize"
-              {...formik.getFieldProps("main_crop")}
-              error={fieldError("main_crop")}
-            />
-            <datalist id="farmer-crops">
-              {CROP_SUGGESTIONS.map((crop) => (
-                <option key={crop} value={crop} />
-              ))}
-            </datalist>
-          </div>
+        </div>
+        <div>
+          <Input
+            label="Main crop"
+            list="farmer-crops"
+            placeholder="e.g. Maize"
+            {...formik.getFieldProps("main_crop")}
+            error={fieldError("main_crop")}
+          />
+          <datalist id="farmer-crops">
+            {CROP_SUGGESTIONS.map((crop) => (
+              <option key={crop} value={crop} />
+            ))}
+          </datalist>
         </div>
       </form>
     </Modal>

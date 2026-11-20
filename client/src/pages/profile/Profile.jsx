@@ -4,6 +4,7 @@ import * as Yup from "yup";
 import { Camera, CalendarDays, Mail, ShieldCheck, Trash2 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
 import Badge from "../../components/ui/Badge";
 import ErrorAlert from "../../components/ui/ErrorAlert";
 import { updateProfile } from "../../api/users";
@@ -11,12 +12,15 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { applyApiErrors } from "../../utils/forms";
 import { capitalize, formatDate } from "../../utils/format";
+import { COUNTY_OPTIONS, KENYA_COUNTIES } from "../../constants";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB, same limit as the server
 
 const schema = Yup.object({
   name: Yup.string().trim().min(2, "Name must be at least 2 characters").max(100, "Too long").required("Name is required"),
+  county: Yup.string().oneOf(KENYA_COUNTIES, "Choose your county").required("Choose your county"),
+  ward: Yup.string().trim().min(2, "Ward must be at least 2 characters").max(100, "Too long").required("Ward is required"),
 });
 
 function initials(name = "") {
@@ -59,12 +63,17 @@ export default function Profile() {
 
   const formik = useFormik({
     enableReinitialize: true,
-    initialValues: { name: user?.name || "" },
+    initialValues: { name: user?.name || "", county: user?.county || "", ward: user?.ward || "" },
     validationSchema: schema,
     onSubmit: async (values, helpers) => {
       helpers.setStatus(null);
       try {
-        const updated = await updateProfile({ name: values.name.trim(), avatarFile });
+        const updated = await updateProfile({
+          name: values.name.trim(),
+          county: values.county,
+          ward: values.ward.trim(),
+          avatarFile,
+        });
         setUser(updated); // updates the name and photo in the top bar too
         setAvatarFile(null);
         if (fileInput.current) fileInput.current.value = "";
@@ -100,15 +109,20 @@ export default function Profile() {
 
   if (!user) return null;
 
-  const nameChanged = formik.values.name.trim() !== user.name;
-  const hasChanges = nameChanged || Boolean(avatarFile);
+  const detailsChanged =
+    formik.values.name.trim() !== user.name ||
+    formik.values.county !== (user.county || "") ||
+    formik.values.ward.trim() !== (user.ward || "");
+  const hasChanges = detailsChanged || Boolean(avatarFile);
   const photo = preview || user.avatar_url;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-semibold text-slate-900">Your profile</h2>
-        <p className="mt-1 text-sm text-slate-500">Your name and photo are shown to other staff.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Your name and photo are shown to other staff. Your ward decides which farmer reports you see first.
+        </p>
       </div>
 
       <form onSubmit={formik.handleSubmit} noValidate className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -158,7 +172,7 @@ export default function Profile() {
           />
         </div>
 
-        {/* Name */}
+        {/* Name and area */}
         <div className="space-y-4 p-6">
           <ErrorAlert message={formik.status} />
           <Input
@@ -167,6 +181,21 @@ export default function Profile() {
             {...formik.getFieldProps("name")}
             error={(formik.touched.name && formik.errors.name) || undefined}
           />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select
+              label="County"
+              placeholder="Choose county"
+              options={COUNTY_OPTIONS}
+              {...formik.getFieldProps("county")}
+              error={(formik.touched.county && formik.errors.county) || undefined}
+            />
+            <Input
+              label="Ward"
+              placeholder="e.g. Tinet"
+              {...formik.getFieldProps("ward")}
+              error={(formik.touched.ward && formik.errors.ward) || undefined}
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">

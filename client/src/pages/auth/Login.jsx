@@ -24,13 +24,21 @@ export default function Login() {
       helpers.setStatus(null);
       try {
         const result = await login({ email: values.email.trim(), password: values.password });
-        if (result?.two_factor_required) {
-          // Step 2: the server emailed a 6-digit code
-          navigate("/verify", { state: { message: result.message } });
+        if (result?.verification_required) {
+          // Signed up but never confirmed the email: the server sent a new code
+          navigate("/verify", { state: { message: result.message, purpose: "signup" } });
+        } else if (result?.two_factor_required) {
+          // Step 2: the server emailed a 6-digit login code
+          navigate("/verify", { state: { message: result.message, purpose: "login" } });
         } else {
           navigate("/dashboard", { replace: true });
         }
       } catch (error) {
+        if (error.status === 403) {
+          // Email verified, but an admin hasn't approved the account yet
+          navigate("/pending", { state: { message: error.message } });
+          return;
+        }
         applyApiErrors(error, helpers);
       }
     },

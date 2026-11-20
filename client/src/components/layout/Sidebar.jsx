@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { getReports } from "../../api/reports";
+import { getUsers } from "../../api/users";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -16,7 +17,7 @@ const NAV_ITEMS = [
   { to: "/agrovets", label: "Agrovets", icon: Store },
   { to: "/batch-codes", label: "Batch Codes", icon: Barcode },
   { to: "/ussd-activity", label: "USSD Activity", icon: Smartphone },
-  { to: "/users", label: "Users", icon: UserCog, adminOnly: true },
+  { to: "/users", label: "Users", icon: UserCog, adminOnly: true, showPendingCount: true },
   { to: "/profile", label: "Profile", icon: UserCircle },
 ];
 
@@ -24,6 +25,8 @@ export default function Sidebar({ open, onClose }) {
   const { user } = useAuth();
   const location = useLocation();
   const [openReports, setOpenReports] = useState(0);
+  const [pendingUsers, setPendingUsers] = useState(0);
+  const isAdmin = user?.role === "admin";
 
   // Real open-reports count for the badge, refreshed when the page changes
   useEffect(() => {
@@ -36,7 +39,19 @@ export default function Sidebar({ open, onClose }) {
     };
   }, [location.pathname]);
 
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || user?.role === "admin");
+  // Admins: how many new officers are waiting for approval
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    let active = true;
+    getUsers({ status: "pending", per_page: 1 })
+      .then((data) => active && setPendingUsers(data?.total || 0))
+      .catch(() => active && setPendingUsers(0));
+    return () => {
+      active = false;
+    };
+  }, [isAdmin, location.pathname]);
+
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <>
@@ -67,7 +82,7 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Main">
-          {items.map(({ to, label, icon: Icon, showOpenCount, adminOnly }) => (
+          {items.map(({ to, label, icon: Icon, showOpenCount, showPendingCount, adminOnly }) => (
             <NavLink
               key={to}
               to={to}
@@ -85,6 +100,14 @@ export default function Sidebar({ open, onClose }) {
               {showOpenCount && openReports > 0 && (
                 <span className="rounded-full bg-green-700 px-2 py-0.5 text-xs font-semibold text-white">
                   {openReports}
+                </span>
+              )}
+              {showPendingCount && pendingUsers > 0 && (
+                <span
+                  className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
+                  title="Officers waiting for approval"
+                >
+                  {pendingUsers}
                 </span>
               )}
               {adminOnly && (

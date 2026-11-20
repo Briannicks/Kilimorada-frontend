@@ -71,7 +71,7 @@ export default function Farmers() {
       render: (row) => <span className="font-semibold text-slate-900">{row.name}</span>,
     },
     { key: "phone", header: "Phone" },
-    { key: "ward", header: "Ward", render: (row) => row.ward || "—" },
+    { key: "ward", header: "Area", render: (row) => [row.ward, row.county].filter(Boolean).join(", ") || "—" },
     { key: "main_crop", header: "Main crop", render: (row) => row.main_crop || "—" },
     {
       key: "registered_via",

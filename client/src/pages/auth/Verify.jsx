@@ -18,11 +18,14 @@ const schema = Yup.object({
     .required("Enter the 6-digit code from your email"),
 });
 
+// Used twice: to confirm a new account's email (purpose "signup")
+// and for the second step of login (purpose "login").
 export default function Verify() {
   const { verify } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const isSignup = location.state?.purpose === "signup";
 
   const [message, setMessage] = useState(location.state?.message || "Enter the 6-digit code we sent to your email.");
   const [wait, setWait] = useState(RESEND_WAIT_SECONDS);
@@ -42,16 +45,26 @@ export default function Verify() {
     onSubmit: async (values, helpers) => {
       helpers.setStatus(null);
       try {
-        await verify(values.code);
+        const result = await verify(values.code);
+        if (result?.pending_approval) {
+          // New officer: email confirmed, now an admin has to approve them
+          navigate("/pending", { replace: true, state: { message: result.message } });
+          return;
+        }
+        if (isSignup) toast.success("Email verified. You are the admin of this KilimoRada.");
         navigate("/dashboard", { replace: true });
       } catch (error) {
         if (error.status === 429) {
-          // Too many wrong codes: the server cancelled this login
+          // Too many wrong codes: the server cancelled this attempt
           toast.error(error.message);
           navigate("/login", { replace: true });
           return;
         }
-        if (error.message === "Please log in first") setNeedsLogin(true);
+        if (error.status === 403) {
+          navigate("/pending", { replace: true, state: { message: error.message } });
+          return;
+        }
+        if (error.status === 401 && error.message.startsWith("Your session")) setNeedsLogin(true);
         helpers.setStatus(error.message);
         helpers.setFieldValue("code", "", false);
       }
@@ -81,7 +94,7 @@ export default function Verify() {
 
   return (
     <AuthLayout
-      title="Check your email"
+      title={isSignup ? "Verify your email" : "Check your email"}
       subtitle={message}
       footer={
         <Link to="/login" className="font-semibold text-green-700 underline underline-offset-4 hover:text-green-800">
@@ -119,9 +132,9 @@ export default function Verify() {
 
         {!needsLogin && (
           <p className="text-center text-sm text-slate-500">
-            Didn&apos;t get it?{" "}
+            Didn&apos;t get it? Check your spam folder, or{" "}
             {wait > 0 ? (
-              <span>Resend in {wait}s</span>
+              <span>resend in {wait}s</span>
             ) : (
               <button
                 type="button"
@@ -129,7 +142,7 @@ export default function Verify() {
                 disabled={resending}
                 className="font-semibold text-green-700 hover:underline disabled:opacity-50"
               >
-                {resending ? "Sending..." : "Resend code"}
+                {resending ? "sending..." : "resend the code"}
               </button>
             )}
           </p>
