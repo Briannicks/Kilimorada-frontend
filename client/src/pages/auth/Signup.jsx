@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { Check, X } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import AuthLayout from "../../components/layout/AuthLayout";
@@ -15,11 +16,43 @@ const schema = Yup.object({
   email: Yup.string().trim().email("Enter a valid email address").required("Email is required"),
   county: Yup.string().oneOf(KENYA_COUNTIES, "Choose your county").required("Choose your county"),
   ward: Yup.string().trim().min(2, "Ward must be at least 2 characters").max(100, "Too long").required("Ward is required"),
-  password: Yup.string().min(8, "Password must be at least 8 characters").required("Password is required"),
+  password: Yup.string()
+    .required("Password is required")
+    .min(8, "Password must be at least 8 characters")
+    .matches(/[A-Za-z]/, "Add at least one letter")
+    .matches(/\d/, "Add at least one number")
+    .matches(/[^A-Za-z0-9\s]/, "Add at least one symbol, e.g. ! @ # $")
+    .matches(/^\S*$/, "Password cannot contain spaces"),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password")], "Passwords do not match")
     .required("Confirm your password"),
 });
+
+// Same rules as the server (server/models.py, password_problem)
+const PASSWORD_RULES = [
+  { label: "At least 8 characters", test: (value) => value.length >= 8 },
+  { label: "A letter", test: (value) => /[A-Za-z]/.test(value) },
+  { label: "A number", test: (value) => /\d/.test(value) },
+  { label: "A symbol, e.g. ! @ # $", test: (value) => /[^A-Za-z0-9\s]/.test(value) },
+];
+
+function PasswordChecklist({ value }) {
+  return (
+    <ul className="-mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 px-1" aria-label="Password requirements">
+      {PASSWORD_RULES.map(({ label, test }) => {
+        const met = test(value);
+        const Icon = met ? Check : X;
+        return (
+          <li key={label} className={`flex items-center gap-1.5 text-xs ${met ? "text-green-700" : "text-slate-400"}`}>
+            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>{label}</span>
+            <span className="sr-only">{met ? "(done)" : "(missing)"}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -97,10 +130,10 @@ export default function Signup() {
           label="Password"
           type="password"
           autoComplete="new-password"
-          hint="At least 8 characters."
           {...formik.getFieldProps("password")}
           error={fieldError("password")}
         />
+        <PasswordChecklist value={formik.values.password} />
         <Input
           label="Confirm password"
           type="password"
