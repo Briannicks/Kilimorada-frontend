@@ -21,7 +21,7 @@ export function updateReport(id, data) {
 
 // Saves the reply
 export function replyToReport(id, message) {
-  return api.post(`/reports/${id}`/reply, { message });
+  return api.post(`/reports/${id}/reply`, { message });   // FIX: was `/reports/${id}`/reply
 }
 
 // Admin only.

@@ -50,9 +50,12 @@ export default function Broadcasts() {
   const formik = useFormik({
     initialValues: { message: "", audience: "all", crop: "" },
     validationSchema: schema,
-    // Submitting only opens the confirm dialog; the SMS is sent from confirmSend()
-    onSubmit: (values) => {
-      formik.setStatus(null);
+    // Submitting only opens the confirm dialog; the SMS is sent from confirmSend().
+    // FIX: this handler is not async, so Formik left isSubmitting stuck on true. That kept the
+    // dialog's "Send now" button disabled with a spinner, so the broadcast could never be sent.
+    onSubmit: (values, helpers) => {
+      helpers.setSubmitting(false);
+      helpers.setStatus(null);
       setPending(values);
     },
   });
@@ -104,8 +107,9 @@ export default function Broadcasts() {
     {
       key: "target_crop",
       header: "Audience",
+      // FIX: the API sends null for "all farmers", so the badge used to be empty
       render: (row) => (
-        <Badge tone={row.target_crop === "All farmers" ? "gray" : "green"}>{row.target_crop}</Badge>
+        <Badge tone={row.target_crop ? "green" : "gray"}>{row.target_crop || "All farmers"}</Badge>
       ),
     },
     {
